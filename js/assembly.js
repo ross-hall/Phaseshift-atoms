@@ -217,8 +217,11 @@ class AssemblyAnimation {
     }
 
     // --- Finished parts emerging from the die line ---
+    // _drawPart centers its shape on x, so start the stream half a part
+    // width past greyX — otherwise a freshly spawned part's near half
+    // would poke back over the sheet instead of clearing the die line.
     const partPositions = this._streamPositions(
-      elapsed, p.partInterval, 0, speedPxMs, greyX, w + p.partSize
+      elapsed, p.partInterval, 0, speedPxMs, greyX + p.partSize / 2, w + p.partSize
     );
     for (const x of partPositions) this._drawPart(x, beltY, p.partSize);
 
