@@ -19,7 +19,6 @@ class CloudAnimation {
       dimOpacity: 0.12,
       highlightOpacity: 1,
       driftSpeed: 1,
-      connectSelected: true,
       cycleDuration: 10000,
     };
 
@@ -32,7 +31,6 @@ class CloudAnimation {
       { key: 'dimOpacity', label: 'Dim Opacity', min: 0, max: 0.5, step: 0.02 },
       { key: 'highlightOpacity', label: 'Highlight Opacity', min: 0.3, max: 1, step: 0.02 },
       { key: 'driftSpeed', label: 'Drift Speed', min: 0.1, max: 3, step: 0.05 },
-      { key: 'connectSelected', label: 'Connect Selected', type: 'checkbox' },
       { key: 'cycleDuration', label: 'Cycle Duration (ms)', min: 4000, max: 24000, step: 500 },
     ];
 
@@ -135,23 +133,6 @@ class CloudAnimation {
         opacity = lerp(baseline, p.dimOpacity, groupF);
       }
       positions[i] = { x, y, opacity, isSelected };
-    }
-
-    if (p.connectSelected && groupF > 0.05) {
-      ctx.strokeStyle = `rgba(255,255,255,${0.35 * groupF})`;
-      ctx.lineWidth = 1;
-      const selPts = positions.filter((pt) => pt.isSelected);
-      ctx.beginPath();
-      for (let i = 0; i < selPts.length; i++) {
-        for (let j = i + 1; j < selPts.length; j++) {
-          const d = Math.hypot(selPts[i].x - selPts[j].x, selPts[i].y - selPts[j].y);
-          if (d < p.groupRadius * 1.8) {
-            ctx.moveTo(selPts[i].x, selPts[i].y);
-            ctx.lineTo(selPts[j].x, selPts[j].y);
-          }
-        }
-      }
-      ctx.stroke();
     }
 
     for (const pt of positions) {
