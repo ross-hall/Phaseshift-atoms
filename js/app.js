@@ -19,6 +19,7 @@
     cooling: { label: 'Cooling & Grains — Variables', ctor: CoolingAnimation },
     cloud: { label: 'Solution Selection — Variables', ctor: CloudAnimation },
     assembly: { label: 'Assembly Line — Variables', ctor: AssemblyAnimation },
+    material: { label: 'Material Card — Variables', ctor: MaterialAnimation },
   };
 
   const instances = {};
@@ -48,6 +49,16 @@
         const input = wrap.querySelector('input');
         input.addEventListener('change', () => {
           inst.params[field.key] = input.checked;
+        });
+      } else if (field.type === 'color') {
+        wrap.innerHTML = `
+          <div class="color-row">
+            <span>${field.label}</span>
+            <input type="color" value="${inst.params[field.key]}" />
+          </div>`;
+        const input = wrap.querySelector('input');
+        input.addEventListener('input', () => {
+          inst.params[field.key] = input.value;
         });
       } else {
         const val = inst.params[field.key];

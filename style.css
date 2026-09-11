@@ -217,6 +217,142 @@ input[type="checkbox"] {
   height: 14px;
 }
 
+.color-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--dim);
+}
+.color-row input[type="color"] {
+  width: 32px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--line);
+  background: transparent;
+  cursor: pointer;
+}
+
+/* --- Material Card animation (DOM overlay, not canvas-drawn) --- */
+
+.material-overlay {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow: auto;
+  z-index: 2;
+}
+.material-overlay.active { display: flex; }
+
+.material-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.material-tabs {
+  display: flex;
+  border: 1px solid var(--fg);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.material-tabs button {
+  border: none;
+  background: none;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  padding: 8px 15px;
+  color: var(--dim);
+  cursor: pointer;
+  border-right: 1px solid var(--line);
+  transition: background 0.25s ease, color 0.25s ease;
+}
+.material-tabs button:last-child { border-right: none; }
+.material-tabs button.active { background: var(--fg); color: #000; }
+
+.material-card {
+  width: 100%;
+  border: 1px solid var(--fg);
+  padding: 26px 24px 20px;
+}
+
+.material-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 26px;
+  gap: 12px;
+}
+.material-card-head h2 {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: 0;
+}
+.material-card-state {
+  font-size: 11px;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+.material-card-state .dots {
+  display: inline-block;
+  width: 1.4em;
+  text-align: left;
+}
+
+.material-row { margin-bottom: 22px; }
+.material-row:last-child { margin-bottom: 0; }
+.material-row-label {
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  margin-bottom: 9px;
+  color: var(--fg);
+}
+
+.material-bar-track {
+  position: relative;
+  height: 6px;
+  background: var(--line);
+  border-radius: 3px;
+}
+.material-band {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  border-left: 1px solid rgba(255, 255, 255, 0.4);
+  border-right: 1px solid rgba(255, 255, 255, 0.4);
+}
+.material-bar-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--fg);
+  width: 0%;
+  transition: width 0.5s ease, background 0.3s ease;
+}
+.material-bar-fill.hidden { display: none; }
+
+.material-caption {
+  font-size: 11px;
+  color: var(--dim);
+  text-align: center;
+  max-width: 380px;
+  line-height: 1.5;
+}
+
 @media (max-width: 760px) {
   .layout { grid-template-columns: 1fr; grid-template-rows: 52vh 1fr; height: auto; min-height: calc(100vh - 53px); }
   .stage { border-right: none; border-bottom: 1px solid var(--line); }
