@@ -13,6 +13,7 @@
     lattice: { label: 'Lattice Formation — Variables', ctor: LatticeAnimation },
     cooling: { label: 'Cooling & Grains — Variables', ctor: CoolingAnimation },
     cloud: { label: 'Solution Selection — Variables', ctor: CloudAnimation },
+    assembly: { label: 'Assembly Line — Variables', ctor: AssemblyAnimation },
   };
 
   const instances = {};
@@ -60,6 +61,56 @@
           if (field.needsReset) inst.reset();
         });
       }
+      controlsEl.appendChild(wrap);
+    }
+
+    if (inst.imageSlots) buildImageControls(inst);
+  }
+
+  function buildImageControls(inst) {
+    const heading = document.createElement('div');
+    heading.className = 'control-group-heading';
+    heading.textContent = 'Part Images';
+    controlsEl.appendChild(heading);
+
+    for (const slot of inst.imageSlots) {
+      const wrap = document.createElement('div');
+      wrap.className = 'control image-control';
+      const hasImage = !!inst.images[slot.key];
+      wrap.innerHTML = `
+        <div class="control-row">
+          <span>${slot.label}</span>
+          <span class="value">${hasImage ? 'Custom' : 'Default'}</span>
+        </div>
+        <div class="image-control-actions">
+          <label class="file-btn">
+            Upload
+            <input type="file" accept="image/*" hidden />
+          </label>
+          <button type="button" class="reset-image-btn">Reset</button>
+        </div>`;
+
+      const fileInput = wrap.querySelector('input[type=file]');
+      const valueEl = wrap.querySelector('.value');
+      const resetBtnEl = wrap.querySelector('.reset-image-btn');
+
+      fileInput.addEventListener('change', () => {
+        const file = fileInput.files && fileInput.files[0];
+        if (!file) return;
+        const img = new Image();
+        img.onload = () => {
+          inst.setImage(slot.key, img);
+          valueEl.textContent = 'Custom';
+        };
+        img.src = URL.createObjectURL(file);
+      });
+
+      resetBtnEl.addEventListener('click', () => {
+        inst.clearImage(slot.key);
+        valueEl.textContent = 'Default';
+        fileInput.value = '';
+      });
+
       controlsEl.appendChild(wrap);
     }
   }

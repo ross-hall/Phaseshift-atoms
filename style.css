@@ -144,6 +144,45 @@ input[type="range"]::-moz-range-thumb {
   cursor: pointer;
 }
 
+.control-group-heading {
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin: 4px 0 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.image-control-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.file-btn {
+  flex: 1;
+  text-align: center;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.file-btn:hover { border-color: var(--fg); }
+
+.reset-image-btn {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--dim);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.reset-image-btn:hover { border-color: var(--fg); color: var(--fg); }
+
 .checkbox-row {
   display: flex;
   align-items: center;
