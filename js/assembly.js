@@ -43,9 +43,9 @@ class AssemblyAnimation {
 
     this.schema = [
       { key: 'speed', label: 'Belt Speed (px/s)', min: 20, max: 300, step: 5 },
-      { key: 'gridRows', label: 'Material Grid Rows', min: 3, max: 16, step: 1 },
-      { key: 'squareSize', label: 'Raw Material Size', min: 8, max: 60, step: 1 },
-      { key: 'squareGap', label: 'Raw Material Gap', min: 0, max: 30, step: 1 },
+      { key: 'gridRows', label: 'Material Grid Rows', min: 2, max: 40, step: 1 },
+      { key: 'squareSize', label: 'Raw Material Size', min: 8, max: 140, step: 1 },
+      { key: 'squareGap', label: 'Raw Material Gap', min: 0, max: 40, step: 1 },
       { key: 'partSize', label: 'Part Size', min: 10, max: 200, step: 2 },
       { key: 'partInterval', label: 'Part Output Interval (ms)', min: 150, max: 4000, step: 50 },
       { key: 'laserXFrac', label: 'Laser Position', min: 0.1, max: 0.45, step: 0.01 },
@@ -166,12 +166,16 @@ class AssemblyAnimation {
     const channelTop = beltY - channelHeight / 2;
 
     // --- Raw material: a dense grid of squares scrolling into the laser ---
+    // `phase` counts up from 0 to `cell` and each column's rightEdge rises
+    // with it (moving right, toward the laser); when phase wraps back to 0
+    // a new column has already taken over one cell further left, so the
+    // whole grid reads as continuously feeding rightward with no pop.
     const phase = (elapsed * speedPxMs) % cell;
-    const maxCols = Math.ceil((laserX + p.squareSize) / cell) + 1;
+    const maxCols = Math.ceil((laserX + p.squareSize) / cell) + 2;
     for (let row = 0; row < p.gridRows; row++) {
       const y = channelTop + row * cell + p.squareSize / 2;
       for (let k = 0; k <= maxCols; k++) {
-        const rightEdge = laserX - phase - k * cell;
+        const rightEdge = laserX - (k + 1) * cell + phase;
         const cx = rightEdge - p.squareSize / 2;
         if (cx + p.squareSize / 2 < -1) continue;
         this._drawSquare(cx, y, p.squareSize);
