@@ -34,6 +34,8 @@ class AssemblyAnimation {
       partInterval: 1400,
       laserXFrac: 0.32,
       greyXFrac: 0.64,
+      sheetHeight: 32,
+      flowSpeed: 60,
       gatePadding: 40,
       pulseDuration: 260,
       monochrome: true,
@@ -48,6 +50,8 @@ class AssemblyAnimation {
       { key: 'partInterval', label: 'Part Output Interval (ms)', min: 150, max: 4000, step: 50 },
       { key: 'laserXFrac', label: 'Laser Position', min: 0.1, max: 0.45, step: 0.01 },
       { key: 'greyXFrac', label: 'Die Line Position', min: 0.5, max: 0.85, step: 0.01 },
+      { key: 'sheetHeight', label: 'Sheet Thickness', min: 10, max: 80, step: 1 },
+      { key: 'flowSpeed', label: 'Sheet Flow Speed', min: 0, max: 200, step: 5 },
       { key: 'gatePadding', label: 'Laser/Die Overhang', min: 0, max: 100, step: 2 },
       { key: 'pulseDuration', label: 'Pulse Duration (ms)', min: 100, max: 800, step: 20 },
       { key: 'monochrome', label: 'Monochrome Images', type: 'checkbox' },
@@ -174,20 +178,38 @@ class AssemblyAnimation {
       }
     }
 
-    // --- Sheet: solid, continuous, between laser and die line ---
-    const sheetRect = [laserX, channelTop, greyX - laserX, channelHeight];
+    // --- Sheet (continuous, thin ribbon between laser and die line) ---
+    const sheetTop = beltY - p.sheetHeight / 2;
+    ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(laserX, sheetTop, greyX - laserX, p.sheetHeight);
+
     if (this.images.sheet) {
       ctx.save();
       ctx.beginPath();
-      ctx.rect(...sheetRect);
+      ctx.rect(laserX, sheetTop, greyX - laserX, p.sheetHeight);
       ctx.clip();
-      ctx.filter = p.monochrome ? 'grayscale(1) contrast(1.15) brightness(1.25)' : 'none';
-      ctx.drawImage(this.images.sheet, laserX, channelTop, greyX - laserX, channelHeight);
-      ctx.filter = 'none';
+      this._drawImageFit(this.images.sheet, (laserX + greyX) / 2, beltY, greyX - laserX, p.sheetHeight);
       ctx.restore();
     } else {
-      ctx.fillStyle = 'rgba(255,255,255,0.95)';
-      ctx.fillRect(...sheetRect);
+      // Diagonal flow hatching to read as continuously moving material.
+      // Clipped to the sheet rect so full-length diagonals crop cleanly
+      // instead of having their endpoints clamped (which would distort them).
+      const hatchGap = 14;
+      const offset = (elapsed * p.flowSpeed / 1000) % hatchGap;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(laserX, sheetTop, greyX - laserX, p.sheetHeight);
+      ctx.clip();
+      ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let lx = laserX - p.sheetHeight - offset; lx < greyX + p.sheetHeight; lx += hatchGap) {
+        ctx.moveTo(lx, sheetTop + p.sheetHeight);
+        ctx.lineTo(lx + p.sheetHeight, sheetTop);
+      }
+      ctx.stroke();
+      ctx.restore();
     }
 
     // --- Finished parts emerging from the die line ---
