@@ -6,8 +6,13 @@
   const panelTitle = document.getElementById('panel-title');
   const resetBtn = document.getElementById('reset-btn');
   const tabButtons = document.querySelectorAll('.tab');
+  const bgColorInput = document.getElementById('bg-color-input');
 
   setupCanvas(canvas, stage);
+
+  bgColorInput.addEventListener('input', () => {
+    AppTheme.bgColor = bgColorInput.value;
+  });
 
   const registry = {
     lattice: { label: 'Lattice Formation — Variables', ctor: LatticeAnimation },

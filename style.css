@@ -35,6 +35,27 @@ html, body {
 }
 .brand span { color: var(--dim); margin: 0 6px; }
 
+.bg-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--dim);
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.bg-picker input[type="color"] {
+  width: 28px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--line);
+  background: transparent;
+  cursor: pointer;
+}
+
 .tabs {
   display: flex;
   gap: 4px;

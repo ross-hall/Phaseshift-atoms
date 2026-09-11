@@ -105,7 +105,7 @@ class LatticeAnimation {
     const { ctx, canvas, atoms, bonds, params: p } = this;
     const { w, h } = cssSize(canvas);
     ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = '#000';
+    ctx.fillStyle = AppTheme.bgColor;
     ctx.fillRect(0, 0, w, h);
 
     const t = (elapsed % p.cycleDuration) / p.cycleDuration;

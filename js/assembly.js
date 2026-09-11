@@ -50,7 +50,7 @@ class AssemblyAnimation {
       { key: 'partInterval', label: 'Part Output Interval (ms)', min: 150, max: 4000, step: 50 },
       { key: 'laserXFrac', label: 'Laser Position', min: 0.1, max: 0.45, step: 0.01 },
       { key: 'greyXFrac', label: 'Die Line Position', min: 0.5, max: 0.85, step: 0.01 },
-      { key: 'sheetHeight', label: 'Sheet Thickness', min: 10, max: 80, step: 1 },
+      { key: 'sheetHeight', label: 'Sheet Thickness', min: 4, max: 320, step: 2 },
       { key: 'flowSpeed', label: 'Sheet Flow Speed', min: 0, max: 200, step: 5 },
       { key: 'gatePadding', label: 'Laser/Die Overhang', min: 0, max: 100, step: 2 },
       { key: 'pulseDuration', label: 'Pulse Duration (ms)', min: 100, max: 800, step: 20 },
@@ -153,7 +153,7 @@ class AssemblyAnimation {
     const { ctx, canvas } = this;
     const { w, h } = cssSize(canvas);
     const p = this.params;
-    ctx.fillStyle = '#000';
+    ctx.fillStyle = AppTheme.bgColor;
     ctx.fillRect(0, 0, w, h);
 
     const beltY = h / 2;

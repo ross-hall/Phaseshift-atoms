@@ -97,7 +97,7 @@ class CloudAnimation {
     const { ctx, canvas } = this;
     const { w, h } = cssSize(canvas);
     const p = this.params;
-    ctx.fillStyle = '#000';
+    ctx.fillStyle = AppTheme.bgColor;
     ctx.fillRect(0, 0, w, h);
 
     const cx = w / 2, cy = h / 2;

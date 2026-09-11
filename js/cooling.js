@@ -127,7 +127,7 @@ class CoolingAnimation {
     const { ctx, canvas, atoms } = this;
     const { w, h } = cssSize(canvas);
     const p = this.params;
-    ctx.fillStyle = '#000';
+    ctx.fillStyle = AppTheme.bgColor;
     ctx.fillRect(0, 0, w, h);
 
     const tMeltEnd = p.meltDuration;
