@@ -181,7 +181,10 @@ class MaterialAnimation {
         fillEl.style.width = r.lockPct + '%';
         fillEl.style.background = p.accentColor;
       } else {
-        const slot = Math.floor(stageElapsed / p.jitterInterval);
+        // Wrap on designDuration so the jitter sequence is a genuine
+        // repeating loop of that length, whether auto-cycling or pinned
+        // here indefinitely (stageElapsed is otherwise unbounded when pinned).
+        const slot = Math.floor((stageElapsed % p.designDuration) / p.jitterInterval);
         const pct = this._hash01(i, slot) * 100;
         const inRange = pct >= r.bandMin && pct <= r.bandMax;
         fillEl.style.width = pct + '%';
