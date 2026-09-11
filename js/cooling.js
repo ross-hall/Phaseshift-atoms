@@ -1,13 +1,20 @@
 /*
  * Animation 2 — Cooling of metal into packed grains.
- * Phase 1: a molten cloud of atoms jitters freely (liquid).
- * Phase 2: the atoms decelerate and come to a stop.
- * Phase 3: several nucleation sites appear at once and expand outward —
- *          atoms caught inside a growing grain light up and swell into its
- *          fill texture, while atoms caught on a seam between two grains
- *          fade out, leaving the boundaries empty.
- * Phase 4: hold the fully-formed grain structure.
- * Phase 5: crossfade back to molten and loop.
+ *
+ * The canvas holds a dense, regular matrix of dots. Several nucleation
+ * points appear at once; each behaves like a growing circular mask that
+ * reveals the matrix underneath it. A dot belongs to whichever seed is
+ * nearest to it (a Voronoi cell), so as two neighbouring masks grow toward
+ * each other their circular fronts naturally clip into straight-edged
+ * polygons instead of overlapping — exactly how real grain boundaries form.
+ * A thin band of dots straddling any boundary is suppressed so the seam
+ * between grains stays empty.
+ *
+ * Phase 1: the matrix jitters gently (liquid).
+ * Phase 2: it decelerates and comes to a stop.
+ * Phase 3: masks expand outward from the nucleation points until they meet.
+ * Phase 4: hold the fully packed grain structure.
+ * Phase 5: crossfade back to the liquid matrix and loop.
  */
 class CoolingAnimation {
   constructor(canvas) {
@@ -17,35 +24,37 @@ class CoolingAnimation {
     this.startTime = null;
 
     this.params = {
-      atomCount: 380,
+      matrixSpacing: 9,
       grainSeedCount: 12,
       meltDuration: 2200,
       settleDuration: 900,
-      growDuration: 3400,
+      growDuration: 3600,
       holdDuration: 2600,
       resetDuration: 1200,
-      pointSize: 1.3,
-      grainExpandScale: 2.2,
-      liquidOpacity: 0.3,
+      pointSize: 1,
+      grainExpandScale: 1.8,
+      liquidOpacity: 0.22,
       grainOpacity: 1,
-      boundaryGap: 10,
-      revealSoftness: 14,
+      boundaryGap: 12,
+      revealSoftness: 8,
+      jitterAmount: 2.5,
     };
 
     this.schema = [
-      { key: 'atomCount', label: 'Atom Count', min: 40, max: 600, step: 10, needsReset: true },
+      { key: 'matrixSpacing', label: 'Matrix Spacing (px)', min: 5, max: 24, step: 1, needsReset: true },
       { key: 'grainSeedCount', label: 'Grain Seed Count', min: 2, max: 60, step: 1, needsReset: true },
       { key: 'meltDuration', label: 'Melt Duration (ms)', min: 500, max: 6000, step: 100 },
       { key: 'settleDuration', label: 'Settle Duration (ms)', min: 200, max: 3000, step: 100 },
       { key: 'growDuration', label: 'Grain Growth Duration (ms)', min: 500, max: 8000, step: 100 },
       { key: 'holdDuration', label: 'Hold Duration (ms)', min: 500, max: 8000, step: 100 },
       { key: 'resetDuration', label: 'Reset/Crossfade (ms)', min: 300, max: 3000, step: 100 },
-      { key: 'pointSize', label: 'Atom Point Size', min: 0.5, max: 4, step: 0.1 },
-      { key: 'grainExpandScale', label: 'Grain Expand Scale', min: 1, max: 3.5, step: 0.1 },
-      { key: 'liquidOpacity', label: 'Liquid Opacity', min: 0, max: 0.8, step: 0.02 },
+      { key: 'pointSize', label: 'Dot Size', min: 0.4, max: 3, step: 0.1 },
+      { key: 'grainExpandScale', label: 'Grain Expand Scale', min: 1, max: 3, step: 0.1 },
+      { key: 'liquidOpacity', label: 'Liquid Opacity', min: 0, max: 0.6, step: 0.02 },
       { key: 'grainOpacity', label: 'Grain Fill Opacity', min: 0.3, max: 1, step: 0.02 },
-      { key: 'boundaryGap', label: 'Boundary Gap (px)', min: 1, max: 24, step: 0.5 },
-      { key: 'revealSoftness', label: 'Reveal Softness (px)', min: 2, max: 60, step: 1 },
+      { key: 'boundaryGap', label: 'Boundary Gap (px)', min: 2, max: 40, step: 1 },
+      { key: 'revealSoftness', label: 'Reveal Softness (px)', min: 2, max: 40, step: 1 },
+      { key: 'jitterAmount', label: 'Liquid Jitter (px)', min: 0, max: 10, step: 0.5 },
     ];
 
     this.reset();
@@ -56,20 +65,31 @@ class CoolingAnimation {
     const rng = makeRng(2024);
     const p = this.params;
 
-    const atoms = Array.from({ length: p.atomCount }, () => ({
-      x: rng() * w, y: rng() * h,
-      phase: rng() * Math.PI * 2,
-      speed: 0.6 + rng() * 0.8,
-      g1: 0, g2: 0,
-    }));
+    const spacing = p.matrixSpacing;
+    const cols = Math.max(1, Math.round(w / spacing));
+    const rows = Math.max(1, Math.round(h / spacing));
+    const offsetX = (w - cols * spacing) / 2;
+    const offsetY = (h - rows * spacing) / 2;
+
+    const atoms = [];
+    for (let row = 0; row <= rows; row++) {
+      for (let col = 0; col <= cols; col++) {
+        atoms.push({
+          x: offsetX + col * spacing,
+          y: offsetY + row * spacing,
+          phase: rng() * Math.PI * 2,
+          speed: 0.6 + rng() * 0.8,
+          g1: 0, g2: 0,
+        });
+      }
+    }
 
     const seeds = Array.from({ length: p.grainSeedCount }, () => ({
       x: rng() * w, y: rng() * h,
     }));
 
-    // Distance from each atom's resting spot to its nearest (g1) and
-    // second-nearest (g2) seed. Fixed once positions are set, so this is
-    // computed only here rather than every frame.
+    // Distance from each grid point to its nearest (g1) and second-nearest
+    // (g2) seed. Fixed once positions are set, so computed only here.
     let maxG1 = 0;
     for (const a of atoms) {
       let d1 = Infinity, d2 = Infinity;
@@ -117,8 +137,8 @@ class CoolingAnimation {
     const total = tHoldEnd + p.resetDuration;
     const te = elapsed % total;
 
-    // Front must clear the farthest atom's g1 by a full revealSoftness
-    // margin, otherwise that atom (and its neighbours) never fully crystallize.
+    // Front must clear the farthest grid point's g1 by a full revealSoftness
+    // margin, otherwise that point (and its neighbours) never fully crystallize.
     const frontTarget = this.maxG1 + p.revealSoftness;
 
     let jitterAmp, front, grainFade;
@@ -140,25 +160,41 @@ class CoolingAnimation {
       grainFade = 1 - easeInCubic(localT);
     }
 
+    // Bucket points by quantized opacity so we issue a handful of fill()
+    // calls instead of one per point (there can be several thousand).
+    const BUCKETS = 24;
+    const buckets = Array.from({ length: BUCKETS + 1 }, () => []);
+    const hasJitter = jitterAmp > 0.001;
+
     for (const a of atoms) {
-      const x = a.x + Math.sin(elapsed * 0.003 * a.speed + a.phase) * 6 * jitterAmp;
-      const y = a.y + Math.cos(elapsed * 0.0035 * a.speed + a.phase * 1.4) * 6 * jitterAmp;
+      const x = hasJitter ? a.x + Math.sin(elapsed * 0.003 * a.speed + a.phase) * p.jitterAmount * jitterAmp : a.x;
+      const y = hasJitter ? a.y + Math.cos(elapsed * 0.0035 * a.speed + a.phase * 1.4) * p.jitterAmount * jitterAmp : a.y;
 
       const revealT = clamp((front - a.g1) / p.revealSoftness, 0, 1);
       const boundaryT = clamp((a.g2 - a.g1) / p.boundaryGap, 0, 1);
 
-      // boundaryT -> 0 near a seam between two grains: the atom fades to
+      // boundaryT -> 0 near a seam between two grains: the dot fades to
       // nothing instead of filling in, leaving that seam empty.
       const crystalOpacity = lerp(0, p.grainOpacity, boundaryT);
       const crystalSize = lerp(p.pointSize, p.pointSize * p.grainExpandScale, boundaryT);
 
       const opacity = lerp(p.liquidOpacity, crystalOpacity, revealT * grainFade);
+      if (opacity <= 0.01) continue;
       const size = lerp(p.pointSize, crystalSize, revealT * grainFade);
 
-      if (opacity <= 0.01) continue;
-      ctx.fillStyle = `rgba(255,255,255,${opacity})`;
+      buckets[Math.round(opacity * BUCKETS)].push(x, y, size);
+    }
+
+    for (let i = 1; i <= BUCKETS; i++) {
+      const pts = buckets[i];
+      if (!pts.length) continue;
+      ctx.fillStyle = `rgba(255,255,255,${i / BUCKETS})`;
       ctx.beginPath();
-      ctx.arc(x, y, size, 0, Math.PI * 2);
+      for (let j = 0; j < pts.length; j += 3) {
+        const x = pts[j], y = pts[j + 1], size = pts[j + 2];
+        ctx.moveTo(x + size, y);
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+      }
       ctx.fill();
     }
   }
