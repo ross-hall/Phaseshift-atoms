@@ -8,6 +8,14 @@ const AppTheme = { bgColor: '#000000' };
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 function lerp(a, b, t) { return a + (b - a) * t; }
 
+// '#rrggbb' + alpha (0-1) -> 'rgba(r,g,b,a)', for combining a user-picked
+// hex color with a computed opacity in a canvas fillStyle/strokeStyle.
+function hexToRgba(hex, alpha) {
+  const n = parseInt(hex.replace('#', ''), 16);
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 function easeInOutCubic(t) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }

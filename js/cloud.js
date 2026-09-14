@@ -20,6 +20,8 @@ class CloudAnimation {
       highlightOpacity: 1,
       driftSpeed: 1,
       cycleDuration: 10000,
+      radialColor: '#d9822b',
+      radialOpacity: 0.5,
     };
 
     this.schema = [
@@ -32,6 +34,8 @@ class CloudAnimation {
       { key: 'highlightOpacity', label: 'Highlight Opacity', min: 0.3, max: 1, step: 0.02 },
       { key: 'driftSpeed', label: 'Drift Speed', min: 0.1, max: 3, step: 0.05 },
       { key: 'cycleDuration', label: 'Cycle Duration (ms)', min: 4000, max: 24000, step: 500 },
+      { key: 'radialColor', label: 'Radial Line Color', type: 'color' },
+      { key: 'radialOpacity', label: 'Radial Line Opacity', min: 0, max: 1, step: 0.02 },
     ];
 
     this.reset();
@@ -75,12 +79,23 @@ class CloudAnimation {
       const j = Math.floor(rng() * (i + 1));
       [ids[i], ids[j]] = [ids[j], ids[i]];
     }
-    const selected = new Set(ids.slice(0, p.selectedCount));
-    for (const id of selected) {
-      this.particles[id].groupSlot = rng();
-    }
-    this.selected = selected;
+    const selectedIds = ids.slice(0, p.selectedCount);
+    // Evenly space selected particles around the group ring (with a random
+    // per-cycle rotation for variety) instead of independent random angles,
+    // so they can never randomly cluster on top of one another.
+    const rotation = rng() * Math.PI * 2;
+    selectedIds.forEach((id, k) => {
+      this.particles[id].groupSlot = rotation + (k / selectedIds.length) * Math.PI * 2;
+    });
+    this.selected = new Set(selectedIds);
     this.cycleIndex = index;
+  }
+
+  // The minimum ring radius at which `count` particles of the given
+  // diameter, evenly spaced, don't touch each other.
+  _minGroupRadius(count, diameter) {
+    if (count <= 1) return 0;
+    return (diameter * 1.15) / (2 * Math.sin(Math.PI / count));
   }
 
   _cloudPos(particle, t, cx, cy, cloudRadius) {
@@ -115,6 +130,8 @@ class CloudAnimation {
 
     const baseline = (p.dimOpacity + p.highlightOpacity) / 2;
     const positions = new Array(this.particles.length);
+    const selectedExpandedDiameter = p.particleSize * (1 + 0.6 * groupF) * 2;
+    const ringRadius = Math.max(p.groupRadius, this._minGroupRadius(p.selectedCount, selectedExpandedDiameter));
 
     for (let i = 0; i < this.particles.length; i++) {
       const particle = this.particles[i];
@@ -123,9 +140,8 @@ class CloudAnimation {
 
       let x = cloud.x, y = cloud.y, opacity;
       if (isSelected) {
-        const slotAngle = particle.groupSlot * Math.PI * 2;
-        const gx = cx + Math.cos(slotAngle) * p.groupRadius;
-        const gy = cy + Math.sin(slotAngle) * p.groupRadius;
+        const gx = cx + Math.cos(particle.groupSlot) * ringRadius;
+        const gy = cy + Math.sin(particle.groupSlot) * ringRadius;
         x = lerp(cloud.x, gx, groupF);
         y = lerp(cloud.y, gy, groupF);
         opacity = lerp(baseline, p.highlightOpacity, groupF);
@@ -133,6 +149,18 @@ class CloudAnimation {
         opacity = lerp(baseline, p.dimOpacity, groupF);
       }
       positions[i] = { x, y, opacity, isSelected };
+    }
+
+    if (groupF > 0.02) {
+      ctx.strokeStyle = hexToRgba(p.radialColor, p.radialOpacity * groupF);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (const pt of positions) {
+        if (!pt.isSelected) continue;
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(pt.x, pt.y);
+      }
+      ctx.stroke();
     }
 
     for (const pt of positions) {
