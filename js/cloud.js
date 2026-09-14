@@ -21,7 +21,9 @@ class CloudAnimation {
       driftSpeed: 1,
       cycleDuration: 10000,
       radialColor: '#d9822b',
-      radialOpacity: 0.5,
+      radialOpacity: 0.7,
+      radialRingSpread: 16,
+      radialPulsePeriod: 1200,
     };
 
     this.schema = [
@@ -34,8 +36,10 @@ class CloudAnimation {
       { key: 'highlightOpacity', label: 'Highlight Opacity', min: 0.3, max: 1, step: 0.02 },
       { key: 'driftSpeed', label: 'Drift Speed', min: 0.1, max: 3, step: 0.05 },
       { key: 'cycleDuration', label: 'Cycle Duration (ms)', min: 4000, max: 24000, step: 500 },
-      { key: 'radialColor', label: 'Radial Line Color', type: 'color' },
-      { key: 'radialOpacity', label: 'Radial Line Opacity', min: 0, max: 1, step: 0.02 },
+      { key: 'radialColor', label: 'Radial Pulse Color', type: 'color' },
+      { key: 'radialOpacity', label: 'Radial Pulse Opacity', min: 0, max: 1, step: 0.02 },
+      { key: 'radialRingSpread', label: 'Radial Pulse Spread (px)', min: 2, max: 60, step: 1 },
+      { key: 'radialPulsePeriod', label: 'Radial Pulse Period (ms)', min: 300, max: 4000, step: 50 },
     ];
 
     this.reset();
@@ -152,15 +156,22 @@ class CloudAnimation {
     }
 
     if (groupF > 0.02) {
-      ctx.strokeStyle = hexToRgba(p.radialColor, p.radialOpacity * groupF);
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      for (const pt of positions) {
-        if (!pt.isSelected) continue;
-        ctx.moveTo(cx, cy);
-        ctx.lineTo(pt.x, pt.y);
+      // A ring pulses outward from each selected dot and fades — a radial
+      // "ping" rather than a line connecting anything.
+      const pulseU = (elapsedMs % p.radialPulsePeriod) / p.radialPulsePeriod;
+      const pulseSpread = easeOutCubic(pulseU) * p.radialRingSpread;
+      const pulseOpacity = (1 - pulseU) * p.radialOpacity * groupF;
+      if (pulseOpacity > 0.01) {
+        ctx.strokeStyle = hexToRgba(p.radialColor, pulseOpacity);
+        ctx.lineWidth = 1.5;
+        for (const pt of positions) {
+          if (!pt.isSelected) continue;
+          const dotRadius = p.particleSize * (1 + 0.6 * groupF);
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, dotRadius + pulseSpread, 0, Math.PI * 2);
+          ctx.stroke();
+        }
       }
-      ctx.stroke();
     }
 
     for (const pt of positions) {
