@@ -81,6 +81,36 @@
     }
 
     if (inst.imageSlots) buildImageControls(inst);
+    if (inst.textFields) buildTextControls(inst);
+  }
+
+  function buildTextControls(inst) {
+    const heading = document.createElement('div');
+    heading.className = 'control-group-heading';
+    heading.textContent = 'Card Text';
+    controlsEl.appendChild(heading);
+
+    for (const field of inst.textFields) {
+      const wrap = document.createElement('div');
+      wrap.className = 'control';
+      const value = inst.getText(field.key);
+      wrap.innerHTML = `
+        <div class="control-row">
+          <span>${field.label}</span>
+        </div>
+        ${field.multiline
+          ? `<textarea rows="2">${escapeHtml(value)}</textarea>`
+          : `<input type="text" value="${escapeHtml(value)}" />`}`;
+      const input = wrap.querySelector('textarea, input');
+      input.addEventListener('input', () => {
+        inst.setText(field.key, input.value);
+      });
+      controlsEl.appendChild(wrap);
+    }
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   }
 
   function buildImageControls(inst) {

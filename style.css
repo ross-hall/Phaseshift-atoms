@@ -217,6 +217,23 @@ input[type="checkbox"] {
   height: 14px;
 }
 
+.control input[type="text"],
+.control textarea {
+  width: 100%;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 6px 8px;
+  resize: vertical;
+}
+.control input[type="text"]:focus,
+.control textarea:focus {
+  outline: none;
+  border-color: var(--fg);
+}
+
 .color-row {
   display: flex;
   align-items: center;

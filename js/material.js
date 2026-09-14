@@ -56,7 +56,59 @@ class MaterialAnimation {
       supply: { label: 'Locked', caption: 'Measured on real material — every property sits inside range, locked.' },
     };
 
+    this.title = 'Material Properties';
+
+    // Lets the control panel offer plain-text editing of everything the
+    // card displays, without cluttering `params` (numeric/color schema).
+    this.textFields = [
+      { key: 'title', label: 'Card Title' },
+      { key: 'row.hardness', label: 'Row 1 Label' },
+      { key: 'row.wear', label: 'Row 2 Label' },
+      { key: 'row.strength', label: 'Row 3 Label' },
+      { key: 'row.corrosion', label: 'Row 4 Label' },
+      { key: 'row.printability', label: 'Row 5 Label' },
+      { key: 'stage.requirement.label', label: 'Requirement State Label' },
+      { key: 'stage.requirement.caption', label: 'Requirement Caption', multiline: true },
+      { key: 'stage.design.label', label: 'Design State Label' },
+      { key: 'stage.design.caption', label: 'Design Caption', multiline: true },
+      { key: 'stage.supply.label', label: 'Supply State Label' },
+      { key: 'stage.supply.caption', label: 'Supply Caption', multiline: true },
+    ];
+
     this._buildDom();
+  }
+
+  getText(key) {
+    if (key === 'title') return this.title;
+    const rowKey = key.match(/^row\.(.+)$/);
+    if (rowKey) return this.rows.find((r) => r.key === rowKey[1]).label;
+    const stageKey = key.match(/^stage\.(.+)\.(label|caption)$/);
+    if (stageKey) return this.stageMeta[stageKey[1]][stageKey[2]];
+    return '';
+  }
+
+  setText(key, value) {
+    if (key === 'title') {
+      this.title = value;
+      this.overlay.querySelector('.material-card-head h2').textContent = value;
+      return;
+    }
+    const rowKey = key.match(/^row\.(.+)$/);
+    if (rowKey) {
+      const row = this.rows.find((r) => r.key === rowKey[1]);
+      row.label = value;
+      this.overlay.querySelector(`.material-row[data-key="${row.key}"] .material-row-label`).textContent = value;
+      return;
+    }
+    const stageKey = key.match(/^stage\.(.+)\.(label|caption)$/);
+    if (stageKey) {
+      const [, stage, field] = stageKey;
+      this.stageMeta[stage][field] = value;
+      // The label is re-painted unconditionally every frame, but the
+      // caption only on a stage change — patch it directly so an edit to
+      // the currently visible stage shows immediately either way.
+      if (stage === this.currentStage && field === 'caption') this.captionEl.textContent = value;
+    }
   }
 
   _buildDom() {
@@ -80,7 +132,7 @@ class MaterialAnimation {
         </div>
         <div class="material-card">
           <div class="material-card-head">
-            <h2>Material Properties</h2>
+            <h2>${this.title}</h2>
             <span class="material-card-state"><span class="label"></span><span class="dots"></span></span>
           </div>
           ${rowsHtml}
