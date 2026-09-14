@@ -336,8 +336,15 @@ input[type="checkbox"] {
   color: var(--fg);
 }
 
+.material-row-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .material-bar-track {
   position: relative;
+  flex: 1;
   height: 6px;
   background: var(--line);
   border-radius: 3px;
@@ -361,6 +368,37 @@ input[type="checkbox"] {
   transition: width 0.5s ease, background 0.3s ease;
 }
 .material-bar-fill.hidden { display: none; }
+
+/* Diagonal hash scrolling across the bar while its property is being
+   tested — stops once the tick appears. */
+.material-bar-fill.testing-active {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(0, 0, 0, 0.4) 0, rgba(0, 0, 0, 0.4) 3px,
+    transparent 3px, transparent 8px
+  );
+  background-size: 200% 200%;
+  animation: material-hash-scroll 0.7s linear infinite;
+}
+@keyframes material-hash-scroll {
+  from { background-position: 0 0; }
+  to { background-position: 16px 0; }
+}
+
+.material-tick {
+  flex: none;
+  width: 16px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.material-tick.visible {
+  opacity: 1;
+  transform: scale(1);
+}
 
 .material-caption {
   font-size: 11px;
