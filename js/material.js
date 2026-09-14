@@ -34,6 +34,7 @@ class MaterialAnimation {
       requirementDuration: 3000,
       designDuration: 6000,
       testPerRowDuration: 900,
+      testHoldDuration: 900,
       supplyDuration: 3000,
       jitterInterval: 450,
       accentColor: '#d9822b',
@@ -43,6 +44,7 @@ class MaterialAnimation {
       { key: 'requirementDuration', label: 'Requirement Hold (ms)', min: 1000, max: 8000, step: 100 },
       { key: 'designDuration', label: 'Design Hold (ms)', min: 2000, max: 15000, step: 200 },
       { key: 'testPerRowDuration', label: 'Testing Time Per Row (ms)', min: 300, max: 3000, step: 100 },
+      { key: 'testHoldDuration', label: 'Testing Complete Hold (ms)', min: 200, max: 4000, step: 100 },
       { key: 'supplyDuration', label: 'Supply Hold (ms)', min: 1000, max: 8000, step: 100 },
       { key: 'jitterInterval', label: 'Simulation Jitter Interval (ms)', min: 150, max: 1500, step: 50 },
       { key: 'accentColor', label: 'In-Range Accent Color', type: 'color' },
@@ -212,7 +214,12 @@ class MaterialAnimation {
     ctx.fillRect(0, 0, w, h);
 
     const p = this.params;
-    const testingDuration = p.testPerRowDuration * this.rows.length;
+    // Room for every row's turn, plus a hold at the end so the last row
+    // actually gets to show its "done" state before the stage loops —
+    // testElapsed below wraps at testingDuration and never quite reaches
+    // it, so the last row's own threshold must fall strictly inside it.
+    const testingRowsDuration = p.testPerRowDuration * this.rows.length;
+    const testingDuration = testingRowsDuration + p.testHoldDuration;
     const total = p.requirementDuration + p.designDuration + testingDuration + p.supplyDuration;
     let stage, stageElapsed;
     if (this.manualStage) {
