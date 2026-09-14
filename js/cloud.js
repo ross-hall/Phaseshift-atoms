@@ -8,13 +8,13 @@ class CloudAnimation {
     this.ctx = canvas.getContext('2d');
     this.rafId = null;
     this.startTime = null;
-    this.cycleIndex = -1;
+    this.cycleIndex = null;
 
     this.params = {
       particleCount: 220,
       selectedCount: 7,
       cloudRadiusFraction: 0.42,
-      groupRadius: 22,
+      clusterPadding: 1.3,
       particleSize: 2,
       dimOpacity: 0.12,
       highlightOpacity: 1,
@@ -30,7 +30,7 @@ class CloudAnimation {
       { key: 'particleCount', label: 'Particle Count', min: 40, max: 500, step: 10, needsReset: true },
       { key: 'selectedCount', label: 'Selected Count', min: 2, max: 24, step: 1 },
       { key: 'cloudRadiusFraction', label: 'Cloud Radius', min: 0.15, max: 0.5, step: 0.01 },
-      { key: 'groupRadius', label: 'Group Radius', min: 8, max: 60, step: 1 },
+      { key: 'clusterPadding', label: 'Cluster Padding', min: 1, max: 2.5, step: 0.05 },
       { key: 'particleSize', label: 'Particle Size', min: 0.8, max: 5, step: 0.1 },
       { key: 'dimOpacity', label: 'Dim Opacity', min: 0, max: 0.5, step: 0.02 },
       { key: 'highlightOpacity', label: 'Highlight Opacity', min: 0.3, max: 1, step: 0.02 },
@@ -54,9 +54,9 @@ class CloudAnimation {
       angleSpeed: (rng() - 0.5) * 0.6,
       radiusPhase: rng() * Math.PI * 2,
       radiusFreq: 0.3 + rng() * 0.5,
-      groupSlot: 0,
+      groupSlotIndex: 0,
     }));
-    this.cycleIndex = -1;
+    this.cycleIndex = null;
   }
 
   start() {
@@ -84,22 +84,32 @@ class CloudAnimation {
       [ids[i], ids[j]] = [ids[j], ids[i]];
     }
     const selectedIds = ids.slice(0, p.selectedCount);
-    // Evenly space selected particles around the group ring (with a random
-    // per-cycle rotation for variety) instead of independent random angles,
-    // so they can never randomly cluster on top of one another.
-    const rotation = rng() * Math.PI * 2;
+    // Assign each selected particle a slot index into the packed cluster
+    // layout (see _clusterOffsets) — a fixed mapping for the cycle, with
+    // the actual pixel offsets recomputed live from the current particle
+    // size so a mid-cycle slider change can't cause overlap.
     selectedIds.forEach((id, k) => {
-      this.particles[id].groupSlot = rotation + (k / selectedIds.length) * Math.PI * 2;
+      this.particles[id].groupSlotIndex = k;
     });
     this.selected = new Set(selectedIds);
     this.cycleIndex = index;
   }
 
-  // The minimum ring radius at which `count` particles of the given
-  // diameter, evenly spaced, don't touch each other.
-  _minGroupRadius(count, diameter) {
-    if (count <= 1) return 0;
-    return (diameter * 1.15) / (2 * Math.sin(Math.PI / count));
+  // `count` positions on a hexagonal close-packed lattice (spacing apart),
+  // nearest-to-center first — a compact, non-overlapping cluster rather
+  // than a hollow ring, since positions fill in from the middle outward.
+  _clusterOffsets(count, spacing) {
+    const pts = [];
+    const rings = Math.ceil(Math.sqrt(count)) + 2;
+    for (let i = -rings; i <= rings; i++) {
+      for (let j = -rings; j <= rings; j++) {
+        const x = spacing * (i + 0.5 * j);
+        const y = spacing * (j * Math.sqrt(3) / 2);
+        pts.push({ x, y, d: x * x + y * y });
+      }
+    }
+    pts.sort((a, b) => a.d - b.d);
+    return pts.slice(0, count);
   }
 
   _cloudPos(particle, t, cx, cy, cloudRadius) {
@@ -134,8 +144,9 @@ class CloudAnimation {
 
     const baseline = (p.dimOpacity + p.highlightOpacity) / 2;
     const positions = new Array(this.particles.length);
-    const selectedExpandedDiameter = p.particleSize * (1 + 0.6 * groupF) * 2;
-    const ringRadius = Math.max(p.groupRadius, this._minGroupRadius(p.selectedCount, selectedExpandedDiameter));
+    const selectedDiameter = p.particleSize * (1 + 0.6 * groupF) * 2;
+    const clusterSpacing = selectedDiameter * p.clusterPadding;
+    const clusterOffsets = this._clusterOffsets(p.selectedCount, clusterSpacing);
 
     for (let i = 0; i < this.particles.length; i++) {
       const particle = this.particles[i];
@@ -144,8 +155,8 @@ class CloudAnimation {
 
       let x = cloud.x, y = cloud.y, opacity;
       if (isSelected) {
-        const gx = cx + Math.cos(particle.groupSlot) * ringRadius;
-        const gy = cy + Math.sin(particle.groupSlot) * ringRadius;
+        const offset = clusterOffsets[particle.groupSlotIndex];
+        const gx = cx + offset.x, gy = cy + offset.y;
         x = lerp(cloud.x, gx, groupF);
         y = lerp(cloud.y, gy, groupF);
         opacity = lerp(baseline, p.highlightOpacity, groupF);
