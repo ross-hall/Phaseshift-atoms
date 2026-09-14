@@ -95,21 +95,31 @@ class CloudAnimation {
     this.cycleIndex = index;
   }
 
-  // `count` positions on a hexagonal close-packed lattice (spacing apart),
-  // nearest-to-center first — a compact, non-overlapping cluster rather
-  // than a hollow ring, since positions fill in from the middle outward.
-  _clusterOffsets(count, spacing) {
+  // `count` randomly scattered positions, each at least minDist from every
+  // other — an organic clump rather than a tidy grid, but still guaranteed
+  // not to overlap. Deterministic for a given seed so it holds steady
+  // across frames of the same cycle. Places points one at a time, searching
+  // outward from the center for the first open spot.
+  _randomPackedOffsets(count, minDist, seed) {
+    const rng = makeRng(seed);
     const pts = [];
-    const rings = Math.ceil(Math.sqrt(count)) + 2;
-    for (let i = -rings; i <= rings; i++) {
-      for (let j = -rings; j <= rings; j++) {
-        const x = spacing * (i + 0.5 * j);
-        const y = spacing * (j * Math.sqrt(3) / 2);
-        pts.push({ x, y, d: x * x + y * y });
+    const step = minDist * 0.15;
+    for (let i = 0; i < count; i++) {
+      let placed = null;
+      for (let radius = 0; radius < minDist * (count + 2) && !placed; radius += step) {
+        for (let attempt = 0; attempt < 16; attempt++) {
+          const angle = rng() * Math.PI * 2;
+          const x = Math.cos(angle) * radius;
+          const y = Math.sin(angle) * radius;
+          if (pts.every((p) => Math.hypot(p.x - x, p.y - y) >= minDist)) {
+            placed = { x, y };
+            break;
+          }
+        }
       }
+      pts.push(placed || { x: 0, y: 0 });
     }
-    pts.sort((a, b) => a.d - b.d);
-    return pts.slice(0, count);
+    return pts;
   }
 
   _cloudPos(particle, t, cx, cy, cloudRadius) {
@@ -146,7 +156,7 @@ class CloudAnimation {
     const positions = new Array(this.particles.length);
     const selectedDiameter = p.particleSize * (1 + 0.6 * groupF) * 2;
     const clusterSpacing = selectedDiameter * p.clusterPadding;
-    const clusterOffsets = this._clusterOffsets(p.selectedCount, clusterSpacing);
+    const clusterOffsets = this._randomPackedOffsets(p.selectedCount, clusterSpacing, 5000 + this.cycleIndex);
 
     for (let i = 0; i < this.particles.length; i++) {
       const particle = this.particles[i];
